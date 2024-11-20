@@ -1,18 +1,20 @@
 // app/api/game/route.ts
 import { NextRequest } from 'next/server';
 import { 
-  ActionGetResponse, 
-  ACTIONS_CORS_HEADERS, 
-  createPostResponse 
-} from "@solana/actions";
-import { 
   Transaction,
   PublicKey,
   ComputeBudgetProgram,
   SystemProgram
 } from "@solana/web3.js";
 
-// Simple in-memory game storage
+// Constants
+const ACTIONS_CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// Types
 interface Game {
   id: string;
   bidAmount: number;
@@ -21,13 +23,33 @@ interface Game {
   status: 'waiting' | 'active' | 'completed';
 }
 
+interface ActionGetResponse {
+  type: "action";
+  icon: string;
+  title: string;
+  label: string;
+  description: string;
+}
+
+interface ActionResponse {
+  type: "transaction";
+  transaction: string;
+  message?: string;
+  links?: {
+    next?: {
+      type: "post";
+      href: string;
+    };
+  };
+}
+
 const games = new Map<string, Game>();
 
 export async function GET(req: NextRequest) {
   try {
     const payload: ActionGetResponse = {
       type: "action",
-      icon: new URL("/flash-tap logo.jpg",new URL(req.url).origin).toString(),
+      icon: new URL("/flash-tap logo.jpg", new URL(req.url).origin).toString(),
       title: "FlashTap 1v1",
       label: "Start Game",
       description: "Create a new 1v1 game\nEnter bid amount to start"
@@ -77,19 +99,24 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    const response = await createPostResponse({
-      fields: {
-        type: "transaction",
-        transaction,
-        message: `Creating 1v1 game with ${bidAmount/1e9} SOL bid`,
-        links: {
-          next: {
-            type: "post",
-            href: `${process.env.ACTION_URL}/game?gameId=${gameId}`,
-          }
+    const serializedTransaction = Buffer.from(
+      transaction.serialize({
+        verifySignatures: false,
+        requireAllSignatures: false,
+      })
+    ).toString('base64');
+
+    const response: ActionResponse = {
+      type: "transaction",
+      transaction: serializedTransaction,
+      message: `Creating 1v1 game with ${bidAmount/1e9} SOL bid`,
+      links: {
+        next: {
+          type: "post",
+          href: `${process.env.ACTION_URL}/game?gameId=${gameId}`,
         }
       }
-    });
+    };
 
     return Response.json(response, { headers: ACTIONS_CORS_HEADERS });
   } catch (error) {
@@ -98,8 +125,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Optional: Handle OPTIONS request for CORS
-export async function OPTIONS(req: NextRequest) {
+export async function OPTIONS() {
   return new Response(null, {
     status: 204,
     headers: ACTIONS_CORS_HEADERS
