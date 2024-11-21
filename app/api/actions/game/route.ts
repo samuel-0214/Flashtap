@@ -3,12 +3,12 @@ import { NextRequest } from 'next/server';
 import { ACTIONS_CORS_HEADERS, createPostResponse } from "@solana/actions";
 import { Transaction, PublicKey, ComputeBudgetProgram, SystemProgram } from "@solana/web3.js";
 
-export async function GET(req:Request) {
+export async function GET() {
   try {
     const payload = {
       type: "action" as const,
-
-      icon: new URL("/preview.jpg",new URL(req.url).origin).toString(),
+      // Use an absolute URL for the icon
+      icon: "https://flashtap.xyz/flash-tap logo.jpg",  // Make sure this URL is accessible
       title: "FlashTap 1v1",
       label: "Start Game",
       description: "FlashTap : A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!!",
@@ -16,22 +16,22 @@ export async function GET(req:Request) {
         actions: [
           { 
             label: "0.1 SOL",
-            href: `${process.env.ACTION_URL}/actions/game?bid=0.1`,
+            href: new URL("/api/actions/game?bid=0.1", "https://flashtap.xyz").toString(),
             type: "post" as const
           },
           {
             label: "0.5 SOL",
-            href: `${process.env.ACTION_URL}/actions/game?bid=0.5`,
+            href: new URL("/api/actions/game?bid=0.5", "https://flashtap.xyz").toString(),
             type: "post" as const
           },
           {
             label: "1 SOL",
-            href: `${process.env.ACTION_URL}/actions/game?bid=1.0`,
+            href: new URL("/api/actions/game?bid=1.0", "https://flashtap.xyz").toString(),
             type: "post" as const
           },
           {
             label: "Custom Bid",
-            href: `${process.env.ACTION_URL}/actions/game?bid={amount}`,
+            href: new URL("/api/actions/game?bid={amount}", "https://flashtap.xyz").toString(),
             type: "post" as const,
             parameters: [{
               name: "amount",
