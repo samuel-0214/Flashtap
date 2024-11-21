@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       icon: new URL("/flash-tap logo.jpg", new URL(req.url).origin).toString(),
       title: "FlashTap 1v1",
       label: "Start Game",
-      description: "Create a new 1v1 game\nEnter bid amount to start"
+      description: "FlashTap : A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!!"
     };
 
     return Response.json(payload, {
