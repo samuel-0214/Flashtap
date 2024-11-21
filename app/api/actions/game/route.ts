@@ -1,23 +1,12 @@
-// app/api/game/route.ts
+// app/api/actions/game/route.ts
 import { NextRequest } from 'next/server';
-import { 
-  ActionGetResponse,
-  ACTIONS_CORS_HEADERS, 
-  createPostResponse,
-  MEMO_PROGRAM_ID 
-} from "@solana/actions";
-import { 
-  Transaction,
-  PublicKey,
-  ComputeBudgetProgram,
-  SystemProgram,
-  TransactionInstruction
-} from "@solana/web3.js";
+import { ACTIONS_CORS_HEADERS, createPostResponse } from "@solana/actions";
+import { Transaction, PublicKey, ComputeBudgetProgram, SystemProgram } from "@solana/web3.js";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const payload: ActionGetResponse = {
-      type: "action",
+    const payload = {
+      type: "action" as const,
       icon: "https://flashtap.vercel.app/flash-tap-logo.png",
       title: "FlashTap 1v1",
       label: "Start Game",
@@ -26,23 +15,23 @@ export async function GET(req: NextRequest) {
         actions: [
           { 
             label: "0.1 SOL",
-            href: `${process.env.ACTION_URL}/game?bid=0.1`,
-            type: "post"
+            href: `${process.env.ACTION_URL}/actions/game?bid=0.1`,
+            type: "post" as const
           },
           {
             label: "0.5 SOL",
-            href: `${process.env.ACTION_URL}/game?bid=0.5`,
-            type: "post"
+            href: `${process.env.ACTION_URL}/actions/game?bid=0.5`,
+            type: "post" as const
           },
           {
             label: "1 SOL",
-            href: `${process.env.ACTION_URL}/game?bid=1.0`,
-            type: "post"
+            href: `${process.env.ACTION_URL}/actions/game?bid=1.0`,
+            type: "post" as const
           },
           {
             label: "Custom Bid",
-            href: `${process.env.ACTION_URL}/game?bid={amount}`,
-            type: "post",
+            href: `${process.env.ACTION_URL}/actions/game?bid={amount}`,
+            type: "post" as const,
             parameters: [{
               name: "amount",
               label: "Enter SOL amount",
@@ -65,9 +54,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const account = new PublicKey(body.account);
     const bidAmount = parseFloat(body.selectedButton || body.bidAmount) * 1e9;
 
@@ -76,15 +65,10 @@ export async function POST(req: NextRequest) {
     }
 
     const transaction = new Transaction();
-
+    
     transaction.add(
       ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
       ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 300_000 }),
-      new TransactionInstruction({
-        programId: new PublicKey(MEMO_PROGRAM_ID),
-        data: Buffer.from(`flashtap_1v1_${Date.now()}`, "utf-8"),
-        keys: []
-      }),
       SystemProgram.transfer({
         fromPubkey: account,
         toPubkey: account,
@@ -96,13 +80,7 @@ export async function POST(req: NextRequest) {
       fields: {
         type: "transaction",
         transaction,
-        message: `Creating 1v1 game with ${bidAmount/1e9} SOL bid`,
-        links: {
-          next: {
-            type: "post",
-            href: `${process.env.ACTION_URL}/game`
-          }
-        }
+        message: `Creating 1v1 game with ${bidAmount/1e9} SOL bid`
       }
     });
 
