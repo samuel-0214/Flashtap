@@ -1,8 +1,7 @@
 // app/api/game/route.ts
 import { NextRequest } from 'next/server';
 import { 
-  ActionGetResponse, 
-  ActionPostResponse,
+  ActionGetResponse,
   ACTIONS_CORS_HEADERS, 
   createPostResponse,
   MEMO_PROGRAM_ID 
