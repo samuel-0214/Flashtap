@@ -73,10 +73,26 @@ export async function GET(req: NextRequest) {
       label: "Start Game",
       description: "FlashTap : A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!!",
       buttons: [
-        { label: "0.1 SOL", value: "0.1" },
-        { label: "0.5 SOL", value: "0.5" },
-        { label: "1 SOL", value: "1.0" }
-      ]
+        { 
+          label: "0.1 SOL", 
+          value: "0.1"
+        },
+        { 
+          label: "0.5 SOL", 
+          value: "0.5"
+        },
+        { 
+          label: "1 SOL", 
+          value: "1.0"
+        }
+      ],
+      bidInput: {
+        type: "number",
+        placeholder: "Enter custom bid amount",
+        min: 0.000001,
+        max: 100,
+        step: 0.1
+      }
     };
 
     // Add custom bid input if a preset was selected
