@@ -3,12 +3,12 @@ import { NextRequest } from 'next/server';
 import { ACTIONS_CORS_HEADERS, createPostResponse } from "@solana/actions";
 import { Transaction, PublicKey, ComputeBudgetProgram, SystemProgram } from "@solana/web3.js";
 
-export async function GET() {
+export async function GET(req:Request) {
   try {
     const payload = {
       type: "action" as const,
 
-      icon: new URL("/flash-tap-logo.png", origin).toString(),
+      icon: new URL("/preview.jpg",new URL(req.url).origin).toString(),
       title: "FlashTap 1v1",
       label: "Start Game",
       description: "FlashTap : A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!!",
