@@ -8,7 +8,7 @@ export async function GET() {
     const payload = {
       type: "action" as const,
 
-      icon: "https://flashtap.xyz/flash-tap-logo.png",
+      icon: new URL("/flash-tap-logo.png", origin).toString(),
       title: "FlashTap 1v1",
       label: "Start Game",
       description: "FlashTap : A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!!",
