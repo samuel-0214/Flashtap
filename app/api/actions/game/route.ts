@@ -7,7 +7,8 @@ export async function GET() {
   try {
     const payload = {
       type: "action" as const,
-      icon: "https://flashtap.vercel.app/flash-tap-logo.png",
+
+      icon: "https://flashtap.xyz/flash-tap-logo.png",
       title: "FlashTap 1v1",
       label: "Start Game",
       description: "FlashTap : A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!!",
