@@ -9,11 +9,11 @@ import {
 } from "@solana/web3.js";
 
 // Configuration
-const GAME_WALLET = new PublicKey("4kdivf9rx7EzhiKjjvZAYMpKTXj4bSYmnNdeaN9V66un");
+const GAME_WALLET = new PublicKey("FLASHjY6iKN8iDBqxJQeVGPG3AJxqcKQkH7KGgWzbrf9");
 const MIN_BET = 0.000001;
 const MAX_BET = 100;
 
-// Enhanced CORS headers
+// Enhanced CORS headers with required Solana Actions headers
 const ENHANCED_HEADERS = {
   ...ACTIONS_CORS_HEADERS,
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Action-Version, X-Blockchain-Ids',
@@ -24,30 +24,32 @@ const ENHANCED_HEADERS = {
 export async function GET() {
   try {
     return Response.json({
-      type: "action",
-      icon: "https://flashtap.xyz/flash-tap logo.jpg",
+      type: "action" as const,
+      icon: "https://flashtap.xyz/flash-tap-logo.jpg",
       title: "FlashTap 1v1",
+      label: "Start Game",
       description: "FlashTap: A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!",
-      label: "Place Bet", // This won't be shown since we have actions
       links: {
         actions: [
           { 
             label: "0.1 SOL",
             href: "/api/actions/game?bid=0.1",
+            type: "post" as const
           },
           {
             label: "0.5 SOL",
             href: "/api/actions/game?bid=0.5",
-            parameters: []
+            type: "post" as const
           },
           {
             label: "1 SOL",
             href: "/api/actions/game?bid=1.0",
-            parameters: []
+            type: "post" as const
           },
           {
             label: "Custom Bid",
             href: "/api/actions/game?bid={amount}",
+            type: "post" as const,
             parameters: [{
               name: "amount",
               label: "Enter SOL amount",
@@ -75,40 +77,26 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse the request
-    const body = await request.json();
-    const userAccount = new PublicKey(body.account);
-    
-    // Get bid amount from URL params
-    const bidParam = request.nextUrl.searchParams.get('bid');
-    if (!bidParam) {
-      throw new Error('Bid amount is required');
-    }
-
-    // Convert bid to lamports
-    const bidSOL = parseFloat(bidParam);
+    // Get user's wallet and bid amount
+    const { account } = await request.json();
+    const userAccount = new PublicKey(account);
+    const bidSOL = parseFloat(request.nextUrl.searchParams.get('bid') || '0');
     const bidLamports = Math.floor(bidSOL * LAMPORTS_PER_SOL);
 
     // Validate bid
-    if (isNaN(bidLamports) || bidLamports <= 0) {
+    if (isNaN(bidLamports) || bidLamports <= 0 || bidSOL < MIN_BET || bidSOL > MAX_BET) {
       return Response.json({ 
         error: 'Invalid bid amount' 
       }, { 
         status: 400, 
-        headers: ENHANCED_HEADERS 
+        headers: ENHANCED_HEADERS
       });
     }
-
-    console.log('Creating transaction:', {
-      user: userAccount.toString(),
-      bidSOL,
-      bidLamports
-    });
 
     // Create transaction
     const transaction = new Transaction();
 
-    // Add compute budget instructions
+    // Set compute budget
     transaction.add(
       ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
       ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 300_000 })
@@ -123,18 +111,16 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Create response with the transaction
-    const postResponse = await createPostResponse({
+    // Return response
+    const response = await createPostResponse({
       fields: {
         type: "transaction",
         transaction,
-        message: `Starting FlashTap game with ${bidSOL} SOL bid. Please approve the transaction.`
+        message: `Starting FlashTap game with ${bidSOL} SOL bid. Good luck!`
       }
     });
 
-    return Response.json(postResponse, { 
-      headers: ENHANCED_HEADERS 
-    });
+    return Response.json(response, { headers: ENHANCED_HEADERS });
 
   } catch (error) {
     console.error('POST Error:', error);
@@ -143,7 +129,7 @@ export async function POST(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { 
       status: 500, 
-      headers: ENHANCED_HEADERS 
+      headers: ENHANCED_HEADERS
     });
   }
 }
