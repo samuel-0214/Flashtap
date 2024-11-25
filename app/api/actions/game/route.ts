@@ -9,7 +9,9 @@ import {
 } from "@solana/web3.js";
 
 // Game configuration
-const GAME_WALLET = new PublicKey("YOUR_GAME_WALLET_ADDRESS"); // Replace with your wallet
+// Replace this with your actual wallet address that will receive the bets
+const GAME_WALLET = new PublicKey("4kdivf9rx7EzhiKjjvZAYMpKTXj4bSYmnNdeaN9V66un"); 
+
 const MIN_BET = 0.000001;
 const MAX_BET = 100;
 const COMPUTE_UNIT_LIMIT = 400_000;
@@ -49,22 +51,22 @@ export async function GET() {
         actions: [
           { 
             label: "0.1 SOL",
-            href: new URL("/api/actions/game?bid=0.1", "https://flashtap.xyz").toString(),
+            href: "/api/actions/game?bid=0.1",
             type: "post" as const
           },
           {
             label: "0.5 SOL",
-            href: new URL("/api/actions/game?bid=0.5", "https://flashtap.xyz").toString(),
+            href: "/api/actions/game?bid=0.5",
             type: "post" as const
           },
           {
             label: "1 SOL",
-            href: new URL("/api/actions/game?bid=1.0", "https://flashtap.xyz").toString(),
+            href: "/api/actions/game?bid=1.0",
             type: "post" as const
           },
           {
             label: "Custom Bid",
-            href: new URL("/api/actions/game?bid={amount}", "https://flashtap.xyz").toString(),
+            href: "/api/actions/game?bid={amount}",
             type: "post" as const,
             parameters: [{
               name: "amount",
@@ -139,7 +141,6 @@ export async function POST(request: NextRequest) {
         type: "transaction",
         transaction,
         message: `Starting FlashTap game with ${bidSOL} SOL bid. Good luck!`,
-        // You can add more game state information here if needed
       }
     });
 
