@@ -8,40 +8,15 @@ import {
   LAMPORTS_PER_SOL
 } from "@solana/web3.js";
 
-// Game configuration
-// Replace this with your actual wallet address that will receive the bets
-const GAME_WALLET = new PublicKey("4kdivf9rx7EzhiKjjvZAYMpKTXj4bSYmnNdeaN9V66un"); 
-
+// Configuration
+const GAME_WALLET = new PublicKey("FLASHjY6iKN8iDBqxJQeVGPG3AJxqcKQkH7KGgWzbrf9"); // Replace with your wallet
 const MIN_BET = 0.000001;
 const MAX_BET = 100;
-const COMPUTE_UNIT_LIMIT = 400_000;
-const COMPUTE_UNIT_PRICE = 300_000;
 
-// Error messages
-const ERRORS = {
-  INVALID_BID: 'Invalid bid amount',
-  INTERNAL_ERROR: 'Internal server error',
-  BID_TOO_LOW: `Minimum bet is ${MIN_BET} SOL`,
-  BID_TOO_HIGH: `Maximum bet is ${MAX_BET} SOL`,
-};
-
-// Validate bid amount
-function validateBid(amount: number): { valid: boolean; error?: string } {
-  if (isNaN(amount) || amount <= 0) {
-    return { valid: false, error: ERRORS.INVALID_BID };
-  }
-  if (amount < MIN_BET) {
-    return { valid: false, error: ERRORS.BID_TOO_LOW };
-  }
-  if (amount > MAX_BET) {
-    return { valid: false, error: ERRORS.BID_TOO_HIGH };
-  }
-  return { valid: true };
-}
-
+// Routes
 export async function GET() {
   try {
-    const payload = {
+    return Response.json({
       type: "action" as const,
       icon: "https://flashtap.xyz/flash-tap logo.jpg",
       title: "FlashTap 1v1",
@@ -81,49 +56,43 @@ export async function GET() {
           }
         ]
       }
-    };
-
-    return Response.json(payload, { headers: ACTIONS_CORS_HEADERS });
+    }, { 
+      headers: ACTIONS_CORS_HEADERS 
+    });
   } catch (error) {
     console.error('GET Error:', error);
-    return new Response(
-      JSON.stringify({ error: ERRORS.INTERNAL_ERROR }), 
-      { status: 500, headers: ACTIONS_CORS_HEADERS }
-    );
+    return Response.json({ error: 'Internal server error' }, { 
+      status: 500, 
+      headers: ACTIONS_CORS_HEADERS 
+    });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse request body for user account
-    const body = await request.json();
-    const userAccount = new PublicKey(body.account);
-    
-    // Get and validate bid amount
+    // Get user's wallet and bid amount
+    const { account } = await request.json();
+    const userAccount = new PublicKey(account);
     const bidSOL = parseFloat(request.nextUrl.searchParams.get('bid') || '0');
-    const validation = validateBid(bidSOL);
-    
-    if (!validation.valid) {
-      return new Response(
-        JSON.stringify({ error: validation.error }), 
-        { status: 400, headers: ACTIONS_CORS_HEADERS }
-      );
-    }
-
-    // Convert SOL to lamports
     const bidLamports = Math.floor(bidSOL * LAMPORTS_PER_SOL);
+
+    // Validate bid
+    if (isNaN(bidLamports) || bidLamports <= 0 || bidSOL < MIN_BET || bidSOL > MAX_BET) {
+      return Response.json({ 
+        error: 'Invalid bid amount' 
+      }, { 
+        status: 400, 
+        headers: ACTIONS_CORS_HEADERS 
+      });
+    }
 
     // Create transaction
     const transaction = new Transaction();
 
-    // Add compute budget instructions
+    // Set compute budget
     transaction.add(
-      ComputeBudgetProgram.setComputeUnitLimit({ 
-        units: COMPUTE_UNIT_LIMIT 
-      }),
-      ComputeBudgetProgram.setComputeUnitPrice({ 
-        microLamports: COMPUTE_UNIT_PRICE 
-      })
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 300_000 })
     );
 
     // Add transfer instruction
@@ -135,12 +104,12 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Create and return response
+    // Return response
     const response = await createPostResponse({
       fields: {
         type: "transaction",
         transaction,
-        message: `Starting FlashTap game with ${bidSOL} SOL bid. Good luck!`,
+        message: `Starting FlashTap game with ${bidSOL} SOL bid. Good luck!`
       }
     });
 
@@ -148,10 +117,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('POST Error:', error);
-    return new Response(
-      JSON.stringify({ error: ERRORS.INTERNAL_ERROR }), 
-      { status: 500, headers: ACTIONS_CORS_HEADERS }
-    );
+    return Response.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { 
+      status: 500, 
+      headers: ACTIONS_CORS_HEADERS 
+    });
   }
 }
 
