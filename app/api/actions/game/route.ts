@@ -1,17 +1,50 @@
-// app/api/actions/game/route.ts
 import { NextRequest } from 'next/server';
 import { ACTIONS_CORS_HEADERS, createPostResponse } from "@solana/actions";
-import { Transaction, PublicKey, ComputeBudgetProgram, SystemProgram } from "@solana/web3.js";
+import { 
+  Transaction, 
+  PublicKey, 
+  ComputeBudgetProgram, 
+  SystemProgram,
+  LAMPORTS_PER_SOL
+} from "@solana/web3.js";
+
+// Game configuration
+const GAME_WALLET = new PublicKey("YOUR_GAME_WALLET_ADDRESS"); // Replace with your wallet
+const MIN_BET = 0.000001;
+const MAX_BET = 100;
+const COMPUTE_UNIT_LIMIT = 400_000;
+const COMPUTE_UNIT_PRICE = 300_000;
+
+// Error messages
+const ERRORS = {
+  INVALID_BID: 'Invalid bid amount',
+  INTERNAL_ERROR: 'Internal server error',
+  BID_TOO_LOW: `Minimum bet is ${MIN_BET} SOL`,
+  BID_TOO_HIGH: `Maximum bet is ${MAX_BET} SOL`,
+};
+
+// Validate bid amount
+function validateBid(amount: number): { valid: boolean; error?: string } {
+  if (isNaN(amount) || amount <= 0) {
+    return { valid: false, error: ERRORS.INVALID_BID };
+  }
+  if (amount < MIN_BET) {
+    return { valid: false, error: ERRORS.BID_TOO_LOW };
+  }
+  if (amount > MAX_BET) {
+    return { valid: false, error: ERRORS.BID_TOO_HIGH };
+  }
+  return { valid: true };
+}
 
 export async function GET() {
   try {
     const payload = {
       type: "action" as const,
-      // Use an absolute URL for the icon
-      icon: "https://flashtap.xyz/flash-tap logo.jpg",  // Make sure this URL is accessible
+      icon: "https://flashtap.xyz/flash-tap-logo.jpg",
       title: "FlashTap 1v1",
       label: "Start Game",
-      description: "FlashTap : A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!!",
+      description: "FlashTap: A 1v1 game where you bet your SOL and compete head-on in a number guessing challenge!",
       links: {
         actions: [
           { 
@@ -37,8 +70,8 @@ export async function GET() {
               name: "amount",
               label: "Enter SOL amount",
               type: "number",
-              min: 0.000001,
-              max: 100,
+              min: MIN_BET,
+              max: MAX_BET,
               required: true,
               pattern: "^[0-9]*(\\.[0-9]+)?$",
               patternDescription: "Enter a valid SOL amount (e.g. 0.5)"
@@ -50,45 +83,74 @@ export async function GET() {
 
     return Response.json(payload, { headers: ACTIONS_CORS_HEADERS });
   } catch (error) {
-    console.error('Error:', error);
-    return new Response('Internal server error', { status: 500 });
+    console.error('GET Error:', error);
+    return new Response(
+      JSON.stringify({ error: ERRORS.INTERNAL_ERROR }), 
+      { status: 500, headers: ACTIONS_CORS_HEADERS }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Parse request body for user account
     const body = await request.json();
-    const account = new PublicKey(body.account);
-    const bidAmount = parseFloat(body.selectedButton || body.bidAmount) * 1e9;
-
-    if (isNaN(bidAmount) || bidAmount <= 0) {
-      return new Response('Invalid bid amount', { status: 400 });
+    const userAccount = new PublicKey(body.account);
+    
+    // Get and validate bid amount
+    const bidSOL = parseFloat(request.nextUrl.searchParams.get('bid') || '0');
+    const validation = validateBid(bidSOL);
+    
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ error: validation.error }), 
+        { status: 400, headers: ACTIONS_CORS_HEADERS }
+      );
     }
 
+    // Convert SOL to lamports
+    const bidLamports = Math.floor(bidSOL * LAMPORTS_PER_SOL);
+
+    // Create transaction
     const transaction = new Transaction();
-    
+
+    // Add compute budget instructions
     transaction.add(
-      ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
-      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 300_000 }),
-      SystemProgram.transfer({
-        fromPubkey: account,
-        toPubkey: account,
-        lamports: bidAmount,
+      ComputeBudgetProgram.setComputeUnitLimit({ 
+        units: COMPUTE_UNIT_LIMIT 
+      }),
+      ComputeBudgetProgram.setComputeUnitPrice({ 
+        microLamports: COMPUTE_UNIT_PRICE 
       })
     );
 
+    // Add transfer instruction
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: userAccount,
+        toPubkey: GAME_WALLET,
+        lamports: bidLamports,
+      })
+    );
+
+    // Create and return response
     const response = await createPostResponse({
       fields: {
         type: "transaction",
         transaction,
-        message: `Creating 1v1 game with ${bidAmount/1e9} SOL bid`
+        message: `Starting FlashTap game with ${bidSOL} SOL bid. Good luck!`,
+        // You can add more game state information here if needed
       }
     });
 
     return Response.json(response, { headers: ACTIONS_CORS_HEADERS });
+
   } catch (error) {
-    console.error('Error:', error);
-    return new Response('Internal server error', { status: 500 });
+    console.error('POST Error:', error);
+    return new Response(
+      JSON.stringify({ error: ERRORS.INTERNAL_ERROR }), 
+      { status: 500, headers: ACTIONS_CORS_HEADERS }
+    );
   }
 }
 
