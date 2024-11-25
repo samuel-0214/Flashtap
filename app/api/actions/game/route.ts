@@ -34,7 +34,6 @@ export async function GET() {
           { 
             label: "0.1 SOL",
             href: "/api/actions/game?bid=0.1",
-            parameters: [] // Explicitly define empty parameters
           },
           {
             label: "0.5 SOL",
