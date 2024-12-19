@@ -34,22 +34,18 @@ export async function GET() {
           { 
             label: "0.1 SOL",
             href: "/api/actions/game?bid=0.1",
-            type: "post" as const
           },
           {
             label: "0.5 SOL",
             href: "/api/actions/game?bid=0.5",
-            type: "post" as const
           },
           {
             label: "1 SOL",
             href: "/api/actions/game?bid=1.0",
-            type: "post" as const
           },
           {
             label: "Custom Bid",
             href: "/api/actions/game?bid={amount}",
-            type: "post" as const,
             parameters: [{
               name: "amount",
               label: "Enter SOL amount",
